@@ -1,0 +1,43 @@
+name: Sync and Update Academic Pages
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # This runs at midnight every day. Adjust as needed.
+  workflow_dispatch: # Allows you to run this workflow manually from the GitHub Actions tab
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0 # To fetch all history for merging
+
+    - name: Configure Git
+      run: |
+        git config --global user.name 'GitHub Actions'
+        git config --global user.email 'github-actions@users.noreply.github.com'
+
+    - name: Sync with Upstream
+      run: |
+        git remote add upstream https://github.com/academicpages/academicpages.github.io.git || true
+        git fetch upstream
+        git merge upstream/master --allow-unrelated-histories -m "Merge upstream changes"
+        # This merge keeps all your changes and adds new ones from upstream
+
+    - name: Commit Changes
+      run: |
+        git add .
+        git diff-index --quiet HEAD || git commit -m "Auto Update: Sync with upstream and custom changes"
+
+    - name: Push Changes
+      run: |
+        git push origin master
+
+    - name: Build and Deploy
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./_site
+        publish_branch: gh-pages # Assuming you're using GitHub Pages with this branch
